@@ -1,0 +1,307 @@
+### Football Manager API — request playbook
+### Run these requests top-to-bottom. Each block stores ids into variables that
+### later requests reuse, so you can walk through a complete scenario without
+### copy-pasting ids by hand.
+###
+### Works in IntelliJ's built-in HTTP Client and in VS Code's "REST Client"
+### extension. Press the "Run" gutter icon next to each request, or run all.
+
+@host = http://localhost:8080
+
+
+# =============================================================================
+# 1. CREATE TEAMS
+# =============================================================================
+
+### Create FC Tecnocampus
+POST {{host}}/teams
+Content-Type: application/json
+
+{
+  "name": "FC Tecnocampus",
+  "city": "Mataró"
+}
+
+> {%
+client.global.set("teamId", response.body.id);
+%}
+
+### Create a rival team — Real Mataró
+POST {{host}}/teams
+Content-Type: application/json
+
+{
+  "name": "Real Mataró",
+  "city": "Mataró"
+}
+
+> {%
+client.global.set("rivalTeamId", response.body.id);
+%}
+
+### List all teams
+GET {{host}}/teams
+
+### Get a specific team (includes player roster)
+GET {{host}}/teams/{{teamId}}
+
+### League table (sorted by points → goalDifference → goalsFor)
+GET {{host}}/teams/league-table
+
+
+# =============================================================================
+# 2. CREATE PLAYERS (free agents)
+# =============================================================================
+
+### Create a forward
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Lamine Yamal",
+  "position": "FWD",
+  "skillLevel": 88
+}
+
+> {%
+client.global.set("forwardId", response.body.id);
+%}
+
+### Create a midfielder
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Pedri",
+  "position": "MID",
+  "skillLevel": 85
+}
+
+> {%
+client.global.set("midId", response.body.id);
+%}
+
+### Create a defender
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Iñigo Martínez",
+  "position": "DEF",
+  "skillLevel": 78
+}
+
+> {%
+client.global.set("defId", response.body.id);
+%}
+
+### Create a goalkeeper for the rival team
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Ter Stegen",
+  "position": "GK",
+  "skillLevel": 90
+}
+
+> {%
+client.global.set("rivalGkId", response.body.id);
+%}
+
+### Create a forward for the rival team
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Lewandowski",
+  "position": "FWD",
+  "skillLevel": 92
+}
+
+> {%
+client.global.set("rivalFwdId", response.body.id);
+%}
+
+### List all players
+GET {{host}}/players
+
+### Filter players by position
+GET {{host}}/players?position=FWD
+
+### Filter players by status
+GET {{host}}/players?status=FREE_AGENT
+
+### Get a specific player
+GET {{host}}/players/{{forwardId}}
+
+### Update a player (only name and skillLevel may change; position is fixed)
+PUT {{host}}/players/{{forwardId}}
+Content-Type: application/json
+
+{
+  "name": "Lamine Yamal Nasraoui",
+  "skillLevel": 90
+}
+
+
+# =============================================================================
+# 3. SIGN PLAYERS (cost = skillLevel × 2; deducts from team budget)
+# =============================================================================
+
+### Sign forward to FC Tecnocampus
+POST {{host}}/teams/{{teamId}}/sign/{{forwardId}}
+
+### Sign midfielder to FC Tecnocampus
+POST {{host}}/teams/{{teamId}}/sign/{{midId}}
+
+### Sign defender to FC Tecnocampus
+POST {{host}}/teams/{{teamId}}/sign/{{defId}}
+
+### Sign goalkeeper to Real Mataró
+POST {{host}}/teams/{{rivalTeamId}}/sign/{{rivalGkId}}
+
+### Sign forward to Real Mataró
+POST {{host}}/teams/{{rivalTeamId}}/sign/{{rivalFwdId}}
+
+
+# =============================================================================
+# 4. PLAY MATCHES
+# =============================================================================
+
+### Play a match — FC Tecnocampus (home) vs Real Mataró (away)
+POST {{host}}/matches
+Content-Type: application/json
+
+{
+  "homeTeamId": "{{teamId}}",
+  "awayTeamId": "{{rivalTeamId}}"
+}
+
+> {%
+client.global.set("matchId", response.body.id);
+%}
+
+### List all matches (most recent first)
+GET {{host}}/matches
+
+### Get a specific match
+GET {{host}}/matches/{{matchId}}
+
+### All matches involving FC Tecnocampus
+GET {{host}}/teams/{{teamId}}/matches
+
+### Top 10 scorers
+GET {{host}}/players/top-scorers
+
+
+# =============================================================================
+# 5. TRANSFERS & RELEASES
+# =============================================================================
+
+### Transfer the forward from FC Tecnocampus to Real Mataró (fee = skill × 3)
+POST {{host}}/teams/{{teamId}}/transfer/{{forwardId}}/to/{{rivalTeamId}}
+
+### Release the midfielder back into the free-agent pool (refund = skill)
+POST {{host}}/teams/{{teamId}}/release/{{midId}}
+
+
+# =============================================================================
+# 6. RECOVER FROM INJURY
+# =============================================================================
+# Injuries are random (10% per side per match). After enough matches, a player
+# may end up with status INJURED — only then will recover succeed (otherwise 400).
+
+### Recover a player (will return 400 unless they're currently INJURED)
+POST {{host}}/players/{{defId}}/recover
+
+
+# =============================================================================
+# 7. CLEANUP
+# =============================================================================
+
+### Delete a single player (also removed from any team's roster)
+DELETE {{host}}/players/{{midId}}
+
+### Delete a team (every remaining player becomes FREE_AGENT)
+DELETE {{host}}/teams/{{teamId}}
+
+
+# =============================================================================
+# 8. ERROR / VALIDATION CHECKS — these should NOT return 2xx
+# =============================================================================
+
+### 400 — Player name too short
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "X",
+  "position": "FWD",
+  "skillLevel": 50
+}
+
+### 400 — Player skillLevel out of range
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Test Player",
+  "position": "FWD",
+  "skillLevel": 150
+}
+
+### 400 — Invalid position
+POST {{host}}/players
+Content-Type: application/json
+
+{
+  "name": "Test Player",
+  "position": "STRIKER",
+  "skillLevel": 50
+}
+
+### 400 — Team name too short
+POST {{host}}/teams
+Content-Type: application/json
+
+{
+  "name": "FC",
+  "city": "Mataró"
+}
+
+### 400 — Empty city
+POST {{host}}/teams
+Content-Type: application/json
+
+{
+  "name": "Valid Team Name",
+  "city": ""
+}
+
+### 409 — Duplicate team name (case-insensitive)
+POST {{host}}/teams
+Content-Type: application/json
+
+{
+  "name": "real mataró",
+  "city": "Other City"
+}
+
+### 400 — A team cannot play against itself
+POST {{host}}/matches
+Content-Type: application/json
+
+{
+  "homeTeamId": "{{rivalTeamId}}",
+  "awayTeamId": "{{rivalTeamId}}"
+}
+
+### 404 — Player not found
+GET {{host}}/players/00000000-0000-0000-0000-000000000000
+
+### 404 — Team not found
+GET {{host}}/teams/00000000-0000-0000-0000-000000000000
+
+### 404 — Match not found
+GET {{host}}/matches/00000000-0000-0000-0000-000000000000

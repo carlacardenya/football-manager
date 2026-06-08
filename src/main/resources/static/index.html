@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Football Manager</title>
+  <style>
+    :root {
+      --bg: #1a2e1a;
+      --panel: #223822;
+      --panel-2: #1b2b1b;
+      --line: #355335;
+      --text: #e8f6ee;
+      --muted: #9cc9af;
+      --success: #4ecca3;
+      --gold: #f5c542;
+      --danger: #e94560;
+      --info: #3498db;
+      --gk: #6c5ce7;
+      --def: #00b894;
+      --mid: #fdcb6e;
+      --fwd: #e17055;
+      --shadow: rgba(0, 0, 0, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #203920 0, var(--bg) 45%, #132013 100%);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(transparent 96%, rgba(255, 255, 255, 0.03) 100%),
+        linear-gradient(90deg, transparent 96%, rgba(255, 255, 255, 0.03) 100%);
+      background-size: 48px 48px;
+      opacity: 0.22;
+    }
+
+    .container {
+      width: min(1200px, 94vw);
+      margin: 0 auto;
+      padding: 18px 0 26px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(23, 40, 23, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px var(--shadow);
+      backdrop-filter: blur(4px);
+      margin-bottom: 14px;
+    }
+
+    .title {
+      font-size: clamp(1.2rem, 1.8vw, 1.65rem);
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-seed {
+      background: linear-gradient(180deg, #2c8a3e, #1f6c30);
+      color: #fff;
+      border: 1px solid #1f6c30;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .btn-seed:hover { filter: brightness(1.1); }
+    .btn-seed:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .dot.online {
+      color: var(--success);
+      background: var(--success);
+    }
+
+    .dot.offline {
+      color: var(--danger);
+      background: var(--danger);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow: auto;
+      padding-bottom: 2px;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--success);
+    }
+
+    .tab-btn.active {
+      background: var(--success);
+      color: #103325;
+      border-color: #66d7b4;
+    }
+
+    .panel {
+      background: rgba(24, 38, 24, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px var(--shadow);
+      padding: 16px;
+      min-height: 420px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .toolbar h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      background: #2c4b2c;
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.18s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: #8adabd;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn.success {
+      background: var(--success);
+      color: #103325;
+    }
+
+    .btn.warning {
+      background: var(--gold);
+      color: #2b2205;
+    }
+
+    .btn.danger {
+      background: var(--danger);
+      color: #fff2f4;
+    }
+
+    .btn.info {
+      background: var(--info);
+      color: #e9f5ff;
+    }
+
+    .segmented {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .segmented .btn {
+      border-radius: 0;
+      border: none;
+      background: #223622;
+      padding: 8px 10px;
+      font-weight: 700;
+    }
+
+    .segmented .btn.active {
+      background: #325e47;
+      color: #e9fff6;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .player-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .team-grid {
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    }
+
+    .card {
+      background: rgba(32, 49, 32, 0.9);
+      border: 1px solid #355835;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .card h3, .card h4, .card p {
+      margin: 0;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .badge.gk { background: rgba(108, 92, 231, 0.22); color: #d4d0ff; }
+    .badge.def { background: rgba(0, 184, 148, 0.2); color: #adfff0; }
+    .badge.mid { background: rgba(245, 197, 66, 0.23); color: #fff0bb; }
+    .badge.fwd { background: rgba(225, 112, 85, 0.22); color: #ffd2c6; }
+    .badge.free { background: rgba(78, 204, 163, 0.24); color: #c9fff0; }
+    .badge.signed { background: rgba(52, 152, 219, 0.24); color: #d5eeff; }
+    .badge.injured { background: rgba(233, 69, 96, 0.22); color: #ffd0d8; }
+    .badge.win { background: rgba(78, 204, 163, 0.24); color: #cbfff1; }
+    .badge.draw { background: rgba(245, 197, 66, 0.24); color: #fff2c6; }
+    .badge.loss { background: rgba(233, 69, 96, 0.24); color: #ffd4dd; }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.92rem;
+      margin-top: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .form {
+      background: rgba(24, 43, 24, 0.92);
+      border: 1px solid #3d6445;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+      color: var(--muted);
+    }
+
+    input, select {
+      background: #1c2b1f;
+      border: 1px solid #3b5f3f;
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 10px;
+      font-size: 0.95rem;
+      width: 100%;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid rgba(78, 204, 163, 0.5);
+      border-color: #79d9ba;
+    }
+
+    .split {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #385938;
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: rgba(24, 39, 24, 0.93);
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #2f4f2f;
+      text-align: left;
+      font-size: 0.93rem;
+    }
+
+    th {
+      color: #b8dec8;
+      background: rgba(20, 33, 20, 0.96);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: rgba(49, 72, 49, 0.35);
+    }
+
+    .champion td {
+      background: rgba(245, 197, 66, 0.18);
+    }
+
+    .top3 td {
+      background: rgba(78, 204, 163, 0.08);
+    }
+
+    .team-link {
+      color: #d8f6ea;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: underline dotted;
+    }
+
+    .big-number {
+      font-size: 1.08rem;
+      font-weight: 800;
+    }
+
+    .gold {
+      color: var(--gold);
+    }
+
+    .match-score {
+      display: grid;
+      gap: 8px;
+      text-align: center;
+      background: rgba(21, 35, 21, 0.95);
+      border: 1px solid #406540;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 10px;
+    }
+
+    .match-line {
+      font-size: clamp(1rem, 2.4vw, 1.5rem);
+      font-weight: 900;
+    }
+
+    .notice {
+      border: 1px solid #466d4f;
+      background: rgba(30, 50, 30, 0.85);
+      color: #d5f4df;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .notice.offline {
+      border-color: rgba(233, 69, 96, 0.45);
+      background: rgba(62, 24, 33, 0.88);
+      color: #ffdbe2;
+    }
+
+    .spinner {
+      width: 19px;
+      height: 19px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: var(--success);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .toasts {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: grid;
+      gap: 10px;
+      width: min(360px, 90vw);
+    }
+
+    .toast {
+      background: #162716;
+      border-left: 4px solid var(--info);
+      color: #eaf7f0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.28);
+      font-size: 0.94rem;
+      animation: pop 0.2s ease-out;
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.info { border-left-color: var(--info); }
+
+    @keyframes pop {
+      from { transform: translateY(-4px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 700px) {
+      .header { flex-direction: column; align-items: flex-start; }
+      .panel { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="title">⚽ Football Manager</div>
+      <div class="header-right">
+        <button class="btn btn-seed" id="seedDataBtn" title="Create a few demo teams, players, and matches in one click">
+          ⚡ Seed demo data
+        </button>
+        <div id="apiStatus" class="status"><span class="dot offline"></span><span>Checking API...</span></div>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs"></nav>
+
+    <main class="panel">
+      <div id="offlineHint" class="notice offline hidden">
+        API appears offline. Make sure your Spring Boot application is running on localhost:8080.
+      </div>
+      <section id="content"></section>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts"></div>
+
+  <script>
+    // Empty base = use the page's own origin (so this works whether you open
+    // it as http://localhost:8080/index.html via Spring Boot, or from any
+    // other host/port — the CORS config in WebConfig allows it either way).
+    const API_BASE = "";
+    const tabs = [
+      { id: "players", label: "Players" },
+      { id: "teams", label: "Teams" },
+      { id: "transfers", label: "Transfers" },
+      { id: "match", label: "Match Center" },
+      { id: "league", label: "League Table" },
+      { id: "scorers", label: "Top Scorers" }
+    ];
+
+    const state = {
+      activeTab: "players",
+      apiOnline: false,
+      loading: {},
+      players: [],
+      playerPositionFilter: "ALL",
+      playerStatusFilter: "ALL",
+      showPlayerForm: false,
+      editingPlayerId: null,
+      teams: [],
+      showTeamForm: false,
+      expandedTeamIds: new Set(),
+      teamDetailsCache: {},
+      transfer: {
+        teamForSign: "",
+        teamForRelease: "",
+        fromTeam: "",
+        toTeam: "",
+        selectedTransferPlayer: "",
+        freeAgents: [],
+        releaseTeamPlayers: [],
+        fromTeamPlayers: []
+      },
+      match: {
+        teams: [],
+        homeTeamId: "",
+        awayTeamId: "",
+        lastResult: null,
+        matches: [],
+        selectedMatch: null
+      },
+      leagueTable: [],
+      scorers: []
+    };
+
+    const el = {
+      tabs: document.getElementById("tabs"),
+      content: document.getElementById("content"),
+      apiStatus: document.getElementById("apiStatus"),
+      toasts: document.getElementById("toasts"),
+      offlineHint: document.getElementById("offlineHint")
+    };
+
+    function getId(obj) {
+      return obj?.id ?? obj?.uuid ?? obj?.playerId ?? obj?.teamId;
+    }
+
+    function getTeamName(team) {
+      return team?.name ?? team?.teamName ?? "Unknown Team";
+    }
+
+    function getPlayerName(player) {
+      return player?.name ?? player?.playerName ?? "Unknown Player";
+    }
+
+    function positionBadgeClass(pos) {
+      return (pos || "").toLowerCase();
+    }
+
+    function statusBadgeClass(status) {
+      const s = (status || "").toUpperCase();
+      if (s === "FREE_AGENT") return "free";
+      if (s === "SIGNED") return "signed";
+      if (s === "INJURED") return "injured";
+      return "signed";
+    }
+
+    function statusLabel(status) {
+      const s = (status || "").toUpperCase();
+      if (s === "FREE_AGENT") return "Free Agent";
+      if (s === "SIGNED") return "Signed";
+      if (s === "INJURED") return "Injured";
+      return s || "Unknown";
+    }
+
+    function resultBadgeType(home, away) {
+      if (home > away) return { text: "HOME WIN", cls: "win" };
+      if (home < away) return { text: "AWAY WIN", cls: "loss" };
+      return { text: "DRAW", cls: "draw" };
+    }
+
+    function toast(msg, type = "info") {
+      const node = document.createElement("div");
+      node.className = `toast ${type}`;
+      node.textContent = msg;
+      el.toasts.appendChild(node);
+      setTimeout(() => {
+        node.remove();
+      }, 4000);
+    }
+
+    function setLoading(key, value) {
+      state.loading[key] = value;
+      render();
+    }
+
+    function anyLoading() {
+      return Object.values(state.loading).some(Boolean);
+    }
+
+    async function api(path, options = {}) {
+      const cfg = {
+        method: options.method || "GET",
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+      };
+      if (options.body !== undefined) cfg.body = JSON.stringify(options.body);
+
+      try {
+        const res = await fetch(`${API_BASE}${path}`, cfg);
+        if (!res.ok) {
+          let payload;
+          try {
+            payload = await res.json();
+          } catch (_) {
+            payload = {};
+          }
+          const message = payload.message || `Request failed (${res.status})`;
+          throw new Error(message);
+        }
+        if (res.status === 204) return null;
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new Error("Cannot connect to API");
+        }
+        throw error;
+      }
+    }
+
+    function loadingInline(text = "Loading...") {
+      return `<div class="notice"><span class="spinner"></span>${text}</div>`;
+    }
+
+    function safeNum(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function renderTabs() {
+      el.tabs.innerHTML = tabs.map((t) =>
+        `<button class="tab-btn ${state.activeTab === t.id ? "active" : ""}" data-tab="${t.id}">${t.label}</button>`
+      ).join("");
+      [...el.tabs.querySelectorAll("button")].forEach((btn) => {
+        btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+      });
+    }
+
+    function render() {
+      renderTabs();
+      updateApiStatusUI();
+      if (state.activeTab === "players") renderPlayers();
+      if (state.activeTab === "teams") renderTeams();
+      if (state.activeTab === "transfers") renderTransfers();
+      if (state.activeTab === "match") renderMatchCenter();
+      if (state.activeTab === "league") renderLeague();
+      if (state.activeTab === "scorers") renderScorers();
+    }
+
+    function updateApiStatusUI() {
+      const online = state.apiOnline;
+      el.apiStatus.innerHTML = `<span class="dot ${online ? "online" : "offline"}"></span><span>${online ? "API Connected" : "API Offline"}</span>`;
+      el.offlineHint.classList.toggle("hidden", online);
+    }
+
+    // -------------------------------------------------------------------------
+    // Demo data seeder — calls the backend's POST /init-data endpoint, which is
+    // pre-implemented (using reflection) so it works even before the student
+    // has implemented the regular create-team / create-player / sign / play
+    // endpoints. Re-clicking wipes existing data and re-seeds, so it's safe to
+    // run repeatedly.
+    // -------------------------------------------------------------------------
+    async function seedDemoData() {
+      const btn = document.getElementById("seedDataBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "⏳ Seeding..."; }
+      try {
+        const result = await api("/init-data", { method: "POST" });
+        toast(
+          `Seeded ${result.teams} teams, ${result.players} players, ${result.signings} signings, ${result.matches} matches`,
+          "success"
+        );
+        await activateTab(state.activeTab); // refresh whatever the user is looking at
+      } catch (e) {
+        toast(`Seed failed: ${e.message}`, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "⚡ Seed demo data"; }
+      }
+    }
+
+    async function checkApiConnection(silent = true) {
+      try {
+        // Ping a real endpoint to verify the API is reachable.
+        // /teams returns [] when empty so this is a cheap health check.
+        await api("/teams");
+        state.apiOnline = true;
+      } catch (_) {
+        state.apiOnline = false;
+        if (!silent) toast("Cannot connect to API", "error");
+      }
+      updateApiStatusUI();
+    }
+
+    async function activateTab(id) {
+      state.activeTab = id;
+      state.loading = {};
+      render();
+      if (id === "players") await loadPlayers();
+      if (id === "teams") await loadTeams();
+      if (id === "transfers") await loadTransfersData();
+      if (id === "match") await loadMatchData();
+      if (id === "league") await loadLeagueTable();
+      if (id === "scorers") await loadTopScorers();
+      setupAutoRefresh();
+    }
+
+    function setupAutoRefresh() {
+      if (window.__leagueTimer) clearInterval(window.__leagueTimer);
+      if (window.__scorerTimer) clearInterval(window.__scorerTimer);
+      if (state.activeTab === "league") {
+        window.__leagueTimer = setInterval(() => {
+          if (state.activeTab === "league") loadLeagueTable(true);
+        }, 5000);
+      }
+      if (state.activeTab === "scorers") {
+        window.__scorerTimer = setInterval(() => {
+          if (state.activeTab === "scorers") loadTopScorers(true);
+        }, 5000);
+      }
+    }
+
+    function groupByPosition(players) {
+      const groups = { GK: [], DEF: [], MID: [], FWD: [] };
+      players.forEach((p) => {
+        const pos = p.position || "MID";
+        if (!groups[pos]) groups[pos] = [];
+        groups[pos].push(p);
+      });
+      return groups;
+    }
+
+    async function loadPlayers() {
+      setLoading("players", true);
+      try {
+        const params = new URLSearchParams();
+        if (state.playerPositionFilter !== "ALL") params.set("position", state.playerPositionFilter);
+        if (state.playerStatusFilter !== "ALL") params.set("status", state.playerStatusFilter);
+        const q = params.toString() ? `?${params.toString()}` : "";
+        state.players = await api(`/players${q}`);
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("players", false);
+      }
+    }
+
+    function renderPlayers() {
+      const loading = state.loading.players;
+      const players = Array.isArray(state.players) ? state.players : [];
+      el.content.innerHTML = `
+        <div class="toolbar">
+          <h2>Players</h2>
+          <button class="btn success" id="togglePlayerForm">+ New Player</button>
+        </div>
+
+        ${state.showPlayerForm ? `
+          <form class="form" id="newPlayerForm">
+            <div class="split">
+              <label>Name <input required name="name" placeholder="Player name" maxlength="50" /></label>
+              <label>Position
+                <select required name="position">
+                  <option value="GK">GK</option>
+                  <option value="DEF">DEF</option>
+                  <option value="MID">MID</option>
+                  <option value="FWD">FWD</option>
+                </select>
+              </label>
+              <label>Skill Level (1-99)
+                <input required type="number" min="1" max="99" name="skillLevel" value="60" />
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn success" type="submit" ${anyLoading() ? "disabled" : ""}>Register</button>
+              <button class="btn" type="button" id="cancelPlayerForm">Cancel</button>
+            </div>
+          </form>
+        ` : ""}
+
+        <div class="toolbar">
+          <div class="inline">
+            <span class="muted">Position:</span>
+            <div class="segmented" id="positionFilter">
+              ${["ALL", "GK", "DEF", "MID", "FWD"].map((p) =>
+                `<button class="btn ${state.playerPositionFilter === p ? "active" : ""}" data-pos="${p}">${p}</button>`
+              ).join("")}
+            </div>
+          </div>
+          <div class="inline">
+            <span class="muted">Status:</span>
+            <div class="segmented" id="statusFilter">
+              ${["ALL", "FREE_AGENT", "SIGNED", "INJURED"].map((s) =>
+                `<button class="btn ${state.playerStatusFilter === s ? "active" : ""}" data-status="${s}">${statusLabel(s)}</button>`
+              ).join("")}
+            </div>
+          </div>
+        </div>
+
+        ${loading ? loadingInline("Loading players...") : ""}
+        <div class="grid player-grid">
+          ${players.map((p) => renderPlayerCard(p)).join("") || "<p class='muted'>No players found.</p>"}
+        </div>
+      `;
+
+      document.getElementById("togglePlayerForm")?.addEventListener("click", () => {
+        state.showPlayerForm = true;
+        renderPlayers();
+      });
+      document.getElementById("cancelPlayerForm")?.addEventListener("click", () => {
+        state.showPlayerForm = false;
+        renderPlayers();
+      });
+      document.getElementById("newPlayerForm")?.addEventListener("submit", submitNewPlayer);
+
+      el.content.querySelectorAll("#positionFilter button").forEach((b) => {
+        b.addEventListener("click", async () => {
+          state.playerPositionFilter = b.dataset.pos;
+          await loadPlayers();
+        });
+      });
+      el.content.querySelectorAll("#statusFilter button").forEach((b) => {
+        b.addEventListener("click", async () => {
+          state.playerStatusFilter = b.dataset.status;
+          await loadPlayers();
+        });
+      });
+
+      bindPlayerCardActions();
+    }
+
+    function renderPlayerCard(p) {
+      const id = getId(p);
+      const status = p.status || "FREE_AGENT";
+      const editing = state.editingPlayerId === id;
+      return `
+        <article class="card" data-player-id="${id}">
+          <div class="card-head">
+            <h3>${getPlayerName(p)}</h3>
+            <span class="badge ${positionBadgeClass(p.position)}">${p.position || "-"}</span>
+          </div>
+          <div class="inline">
+            <span class="badge ${statusBadgeClass(status)}">${statusLabel(status)}</span>
+            ${p.teamName ? `<span class="muted">Team: ${p.teamName}</span>` : ""}
+          </div>
+          <div class="stats">
+            <span>Skill: <strong>${safeNum(p.skillLevel)}</strong></span>
+            <span>Goals: <strong>${safeNum(p.goals)}</strong></span>
+            <span>Games: <strong>${safeNum(p.gamesPlayed)}</strong></span>
+          </div>
+          ${editing ? `
+            <form class="form" style="margin-top:10px" data-edit-form="${id}">
+              <label>Name <input required name="name" value="${getPlayerName(p).replace(/"/g, "&quot;")}" /></label>
+              <label>Skill Level <input required type="number" min="1" max="99" name="skillLevel" value="${safeNum(p.skillLevel)}" /></label>
+              <div class="actions">
+                <button class="btn success" type="submit" ${anyLoading() ? "disabled" : ""}>Save</button>
+                <button class="btn" type="button" data-cancel-edit="${id}">Cancel</button>
+              </div>
+            </form>
+          ` : `
+            <div class="actions">
+              <button class="btn info" data-edit-player="${id}">Edit</button>
+              <button class="btn danger" data-delete-player="${id}">Delete</button>
+              ${status === "INJURED" ? `<button class="btn warning" data-recover-player="${id}">Recover</button>` : ""}
+            </div>
+          `}
+        </article>
+      `;
+    }
+
+    function bindPlayerCardActions() {
+      el.content.querySelectorAll("[data-edit-player]").forEach((b) => {
+        b.addEventListener("click", () => {
+          state.editingPlayerId = b.dataset.editPlayer;
+          renderPlayers();
+        });
+      });
+      el.content.querySelectorAll("[data-cancel-edit]").forEach((b) => {
+        b.addEventListener("click", () => {
+          state.editingPlayerId = null;
+          renderPlayers();
+        });
+      });
+      el.content.querySelectorAll("[data-edit-form]").forEach((f) => {
+        f.addEventListener("submit", submitEditPlayer);
+      });
+      el.content.querySelectorAll("[data-delete-player]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          if (!confirm("Delete this player?")) return;
+          setLoading("deletePlayer", true);
+          try {
+            await api(`/players/${b.dataset.deletePlayer}`, { method: "DELETE" });
+            toast("Player deleted", "success");
+            await loadPlayers();
+          } catch (error) {
+            toast(error.message, "error");
+          } finally {
+            setLoading("deletePlayer", false);
+          }
+        });
+      });
+      el.content.querySelectorAll("[data-recover-player]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          setLoading("recoverPlayer", true);
+          try {
+            await api(`/players/${b.dataset.recoverPlayer}/recover`, { method: "POST" });
+            toast("Player recovered", "success");
+            await loadPlayers();
+          } catch (error) {
+            toast(error.message, "error");
+          } finally {
+            setLoading("recoverPlayer", false);
+          }
+        });
+      });
+    }
+
+    async function submitNewPlayer(event) {
+      event.preventDefault();
+      const fd = new FormData(event.target);
+      const payload = {
+        name: String(fd.get("name")).trim(),
+        position: fd.get("position"),
+        skillLevel: Number(fd.get("skillLevel"))
+      };
+      setLoading("createPlayer", true);
+      try {
+        const created = await api("/players", { method: "POST", body: payload });
+        toast(`Player ${getPlayerName(created)} registered!`, "success");
+        state.showPlayerForm = false;
+        await loadPlayers();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("createPlayer", false);
+      }
+    }
+
+    async function submitEditPlayer(event) {
+      event.preventDefault();
+      const id = event.target.dataset.editForm;
+      const fd = new FormData(event.target);
+      const payload = {
+        name: String(fd.get("name")).trim(),
+        skillLevel: Number(fd.get("skillLevel"))
+      };
+      setLoading("editPlayer", true);
+      try {
+        await api(`/players/${id}`, { method: "PUT", body: payload });
+        toast("Player updated", "success");
+        state.editingPlayerId = null;
+        await loadPlayers();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("editPlayer", false);
+      }
+    }
+
+    async function loadTeams() {
+      setLoading("teams", true);
+      try {
+        state.teams = await api("/teams");
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("teams", false);
+      }
+    }
+
+    async function fetchTeamDetails(teamId) {
+      if (!teamId) return null;
+      setLoading(`team_${teamId}`, true);
+      try {
+        const detail = await api(`/teams/${teamId}`);
+        state.teamDetailsCache[teamId] = detail;
+        return detail;
+      } catch (error) {
+        toast(error.message, "error");
+        return null;
+      } finally {
+        setLoading(`team_${teamId}`, false);
+      }
+    }
+
+    function renderTeamDetail(team) {
+      if (!team) return "";
+      const players = Array.isArray(team.players) ? team.players : [];
+      const groups = groupByPosition(players);
+      const record = `${safeNum(team.wins)}-${safeNum(team.draws)}-${safeNum(team.losses)}`;
+      return `
+        <div class="form">
+          <div class="split">
+            <div><strong>${getTeamName(team)}</strong><div class="muted">${team.city || ""}</div></div>
+            <div>Budget: <strong class="gold">$${safeNum(team.budget)}</strong></div>
+            <div>Record: <strong>${record}</strong> | Pts: <strong>${safeNum(team.points)}</strong></div>
+            <div>GD: <strong>${safeNum(team.goalDifference)}</strong> | Power: <strong>${safeNum(team.teamPower)}</strong></div>
+          </div>
+          ${["GK", "DEF", "MID", "FWD"].map((pos) => `
+            <h4 style="margin-top:10px">${pos}</h4>
+            <div class="grid player-grid">
+              ${(groups[pos] || []).map((p) => `
+                <div class="card">
+                  <div class="card-head">
+                    <strong>${getPlayerName(p)}</strong>
+                    <span class="badge ${positionBadgeClass(p.position)}">${p.position}</span>
+                  </div>
+                  <div class="inline">
+                    <span class="badge ${statusBadgeClass(p.status)}">${statusLabel(p.status)}</span>
+                  </div>
+                  <div class="stats">
+                    <span>Skill: <strong>${safeNum(p.skillLevel)}</strong></span>
+                    <span>Goals: <strong>${safeNum(p.goals)}</strong></span>
+                    <span>Games: <strong>${safeNum(p.gamesPlayed)}</strong></span>
+                  </div>
+                </div>
+              `).join("") || "<p class='muted'>No players.</p>"}
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderTeams() {
+      const teams = Array.isArray(state.teams) ? state.teams : [];
+      const loading = state.loading.teams;
+      el.content.innerHTML = `
+        <div class="toolbar">
+          <h2>Teams</h2>
+          <button class="btn success" id="toggleTeamForm">+ New Team</button>
+        </div>
+
+        ${state.showTeamForm ? `
+          <form class="form" id="newTeamForm">
+            <div class="split">
+              <label>Name <input required name="name" maxlength="50" /></label>
+              <label>City <input required name="city" maxlength="50" /></label>
+            </div>
+            <div class="actions">
+              <button class="btn success" type="submit" ${anyLoading() ? "disabled" : ""}>Create</button>
+              <button class="btn" type="button" id="cancelTeamForm">Cancel</button>
+            </div>
+          </form>
+        ` : ""}
+
+        ${loading ? loadingInline("Loading teams...") : ""}
+        <div class="grid team-grid">
+          ${teams.map((t) => {
+            const id = getId(t);
+            const record = `${safeNum(t.wins)}-${safeNum(t.draws)}-${safeNum(t.losses)}`;
+            const expanded = state.expandedTeamIds.has(id);
+            const detail = state.teamDetailsCache[id];
+            return `
+              <article class="card">
+                <div class="card-head">
+                  <h3>${getTeamName(t)}</h3>
+                  <span class="muted">${t.city || ""}</span>
+                </div>
+                <div class="stats">
+                  <span>Budget: <strong class="gold">$${safeNum(t.budget)}</strong></span>
+                  <span>Record: <strong>${record}</strong></span>
+                  <span>Pts: <strong>${safeNum(t.points)}</strong></span>
+                  <span>Power: <strong>${safeNum(t.teamPower)}</strong></span>
+                </div>
+                <div class="actions">
+                  <button class="btn info" data-view-team="${id}">${expanded ? "Hide Details" : "View Details"}</button>
+                  <button class="btn danger" data-delete-team="${id}">Delete</button>
+                </div>
+                ${expanded ? (state.loading[`team_${id}`] ? loadingInline("Loading team details...") : renderTeamDetail(detail || t)) : ""}
+              </article>
+            `;
+          }).join("") || "<p class='muted'>No teams created yet.</p>"}
+        </div>
+      `;
+
+      document.getElementById("toggleTeamForm")?.addEventListener("click", () => {
+        state.showTeamForm = true;
+        renderTeams();
+      });
+      document.getElementById("cancelTeamForm")?.addEventListener("click", () => {
+        state.showTeamForm = false;
+        renderTeams();
+      });
+      document.getElementById("newTeamForm")?.addEventListener("submit", submitNewTeam);
+
+      el.content.querySelectorAll("[data-view-team]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          const id = b.dataset.viewTeam;
+          if (state.expandedTeamIds.has(id)) {
+            state.expandedTeamIds.delete(id);
+            renderTeams();
+          } else {
+            state.expandedTeamIds.add(id);
+            renderTeams();
+            await fetchTeamDetails(id);
+            renderTeams();
+          }
+        });
+      });
+
+      el.content.querySelectorAll("[data-delete-team]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          if (!confirm("Delete this team? All players will be released.")) return;
+          setLoading("deleteTeam", true);
+          try {
+            await api(`/teams/${b.dataset.deleteTeam}`, { method: "DELETE" });
+            toast("Team deleted, players released", "success");
+            delete state.teamDetailsCache[b.dataset.deleteTeam];
+            state.expandedTeamIds.delete(b.dataset.deleteTeam);
+            await loadTeams();
+          } catch (error) {
+            toast(error.message, "error");
+          } finally {
+            setLoading("deleteTeam", false);
+          }
+        });
+      });
+    }
+
+    async function submitNewTeam(event) {
+      event.preventDefault();
+      const fd = new FormData(event.target);
+      const payload = {
+        name: String(fd.get("name")).trim(),
+        city: String(fd.get("city")).trim()
+      };
+      setLoading("createTeam", true);
+      try {
+        const created = await api("/teams", { method: "POST", body: payload });
+        toast(`Team ${getTeamName(created)} created!`, "success");
+        state.showTeamForm = false;
+        await loadTeams();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("createTeam", false);
+      }
+    }
+
+    async function loadTransfersData() {
+      setLoading("transfers", true);
+      try {
+        const [teams, freeAgents] = await Promise.all([
+          api("/teams"),
+          api("/players?status=FREE_AGENT")
+        ]);
+        state.teams = teams;
+        state.transfer.freeAgents = Array.isArray(freeAgents) ? freeAgents : [];
+        if (!state.transfer.teamForSign && teams[0]) state.transfer.teamForSign = getId(teams[0]);
+        if (!state.transfer.teamForRelease && teams[0]) state.transfer.teamForRelease = getId(teams[0]);
+        if (!state.transfer.fromTeam && teams[0]) state.transfer.fromTeam = getId(teams[0]);
+        if (!state.transfer.toTeam && teams[1]) state.transfer.toTeam = getId(teams[1]);
+        await refreshTransferTeamPlayers();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("transfers", false);
+      }
+    }
+
+    function teamById(id) {
+      return (state.teams || []).find((t) => String(getId(t)) === String(id));
+    }
+
+    async function refreshTransferTeamPlayers() {
+      const releaseTeam = state.transfer.teamForRelease;
+      const fromTeam = state.transfer.fromTeam;
+      try {
+        if (releaseTeam) {
+          const detail = await api(`/teams/${releaseTeam}`);
+          state.transfer.releaseTeamPlayers = detail.players || [];
+          state.teamDetailsCache[releaseTeam] = detail;
+        } else {
+          state.transfer.releaseTeamPlayers = [];
+        }
+        if (fromTeam) {
+          const detail2 = await api(`/teams/${fromTeam}`);
+          state.transfer.fromTeamPlayers = detail2.players || [];
+          state.teamDetailsCache[fromTeam] = detail2;
+          if (!state.transfer.selectedTransferPlayer && detail2.players?.[0]) {
+            state.transfer.selectedTransferPlayer = getId(detail2.players[0]);
+          }
+        } else {
+          state.transfer.fromTeamPlayers = [];
+          state.transfer.selectedTransferPlayer = "";
+        }
+      } catch (error) {
+        toast(error.message, "error");
+      }
+    }
+
+    function renderTeamSelect(options, selected, idAttr, includeEmpty = false) {
+      return `
+        <select data-select="${idAttr}">
+          ${includeEmpty ? `<option value="">Select...</option>` : ""}
+          ${(options || []).map((t) => `<option value="${getId(t)}" ${String(getId(t)) === String(selected) ? "selected" : ""}>${getTeamName(t)}</option>`).join("")}
+        </select>
+      `;
+    }
+
+    function renderTransfers() {
+      const teams = Array.isArray(state.teams) ? state.teams : [];
+      const t = state.transfer;
+      const signTeam = teamById(t.teamForSign) || {};
+      const releaseTeam = teamById(t.teamForRelease) || {};
+      const fromTeam = teamById(t.fromTeam) || {};
+      const toTeam = teamById(t.toTeam) || {};
+      const selectedTransferPlayer = (t.fromTeamPlayers || []).find((p) => String(getId(p)) === String(t.selectedTransferPlayer));
+      const transferFee = selectedTransferPlayer ? safeNum(selectedTransferPlayer.skillLevel) * 3 : 0;
+      const canAffordTransfer = safeNum(toTeam.budget) >= transferFee;
+
+      el.content.innerHTML = `
+        <div class="toolbar"><h2>Transfers</h2></div>
+        ${state.loading.transfers ? loadingInline("Loading transfer data...") : ""}
+        <div class="split">
+          <section class="card">
+            <h3>Sign Free Agent</h3>
+            <label>Team
+              ${renderTeamSelect(teams, t.teamForSign, "signTeam")}
+            </label>
+            <p class="muted">Budget: <strong class="gold">$${safeNum(signTeam.budget)}</strong></p>
+            <div class="grid">
+              ${(t.freeAgents || []).map((p) => `
+                <div class="card">
+                  <div class="card-head">
+                    <strong>${getPlayerName(p)}</strong>
+                    <span class="badge ${positionBadgeClass(p.position)}">${p.position}</span>
+                  </div>
+                  <div class="stats">
+                    <span>Skill: <strong>${safeNum(p.skillLevel)}</strong></span>
+                    <span>Cost: <strong class="gold">$${safeNum(p.skillLevel) * 2}</strong></span>
+                  </div>
+                  <div class="actions">
+                    <button class="btn success" data-sign-player="${getId(p)}" ${!t.teamForSign || anyLoading() ? "disabled" : ""}>Sign</button>
+                  </div>
+                </div>
+              `).join("") || "<p class='muted'>No free agents available.</p>"}
+            </div>
+          </section>
+
+          <section class="card">
+            <h3>Release Player</h3>
+            <label>Team
+              ${renderTeamSelect(teams, t.teamForRelease, "releaseTeam")}
+            </label>
+            <p class="muted">Budget: <strong class="gold">$${safeNum(releaseTeam.budget)}</strong></p>
+            <div class="grid">
+              ${(t.releaseTeamPlayers || []).map((p) => `
+                <div class="card">
+                  <div class="card-head">
+                    <strong>${getPlayerName(p)}</strong>
+                    <span class="badge ${positionBadgeClass(p.position)}">${p.position}</span>
+                  </div>
+                  <div class="stats">
+                    <span>Skill: <strong>${safeNum(p.skillLevel)}</strong></span>
+                    <span>Refund: <strong class="gold">$${safeNum(p.skillLevel)}</strong></span>
+                  </div>
+                  <div class="actions">
+                    <button class="btn warning" data-release-player="${getId(p)}" ${!t.teamForRelease || anyLoading() ? "disabled" : ""}>Release</button>
+                  </div>
+                </div>
+              `).join("") || "<p class='muted'>No players in this team.</p>"}
+            </div>
+          </section>
+        </div>
+
+        <section class="card" style="margin-top:12px">
+          <h3>Transfer Player</h3>
+          <div class="split">
+            <label>From team
+              ${renderTeamSelect(teams, t.fromTeam, "fromTeam", true)}
+            </label>
+            <label>To team
+              ${renderTeamSelect(teams, t.toTeam, "toTeam", true)}
+            </label>
+            <label>Player
+              <select data-select="transferPlayer">
+                <option value="">Select player...</option>
+                ${(t.fromTeamPlayers || []).map((p) =>
+                  `<option value="${getId(p)}" ${String(getId(p)) === String(t.selectedTransferPlayer) ? "selected" : ""}>${getPlayerName(p)} (${p.position})</option>`
+                ).join("")}
+              </select>
+            </label>
+          </div>
+          <div class="stats">
+            <span>Transfer Fee: <strong class="gold">$${transferFee}</strong></span>
+            <span>Destination Budget: <strong class="gold">$${safeNum(toTeam.budget)}</strong></span>
+            <span>${selectedTransferPlayer ? (canAffordTransfer ? "Can afford transfer" : "Cannot afford transfer") : "Select player and teams"}</span>
+          </div>
+          <div class="actions">
+            <button class="btn info" id="transferBtn" ${!t.fromTeam || !t.toTeam || !t.selectedTransferPlayer || t.fromTeam === t.toTeam || !canAffordTransfer || anyLoading() ? "disabled" : ""}>Transfer</button>
+          </div>
+        </section>
+      `;
+
+      el.content.querySelectorAll("[data-select]").forEach((s) => {
+        s.addEventListener("change", async () => {
+          const id = s.dataset.select;
+          const value = s.value;
+          if (id === "signTeam") t.teamForSign = value;
+          if (id === "releaseTeam") {
+            t.teamForRelease = value;
+            await refreshTransferTeamPlayers();
+          }
+          if (id === "fromTeam") {
+            t.fromTeam = value;
+            await refreshTransferTeamPlayers();
+          }
+          if (id === "toTeam") t.toTeam = value;
+          if (id === "transferPlayer") t.selectedTransferPlayer = value;
+          renderTransfers();
+        });
+      });
+
+      el.content.querySelectorAll("[data-sign-player]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          setLoading("sign", true);
+          try {
+            const response = await api(`/teams/${t.teamForSign}/sign/${b.dataset.signPlayer}`, { method: "POST" });
+            toast(`Transfer completed! Cost: $${safeNum(response?.cost)} | Remaining: $${safeNum(response?.teamBudgetRemaining)}`, "success");
+            await loadTransfersData();
+            renderTransfers();
+          } catch (error) {
+            toast(error.message, "error");
+          } finally {
+            setLoading("sign", false);
+          }
+        });
+      });
+
+      el.content.querySelectorAll("[data-release-player]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          setLoading("release", true);
+          try {
+            const response = await api(`/teams/${t.teamForRelease}/release/${b.dataset.releasePlayer}`, { method: "POST" });
+            toast(`Player released! Refund: $${safeNum(response?.refund)} | Budget: $${safeNum(response?.teamBudgetRemaining)}`, "success");
+            await loadTransfersData();
+            renderTransfers();
+          } catch (error) {
+            toast(error.message, "error");
+          } finally {
+            setLoading("release", false);
+          }
+        });
+      });
+
+      document.getElementById("transferBtn")?.addEventListener("click", async () => {
+        setLoading("transfer", true);
+        try {
+          const response = await api(`/teams/${t.fromTeam}/transfer/${t.selectedTransferPlayer}/to/${t.toTeam}`, { method: "POST" });
+          toast(`Transfer completed! Fee: $${safeNum(response?.transferFee)}`, "success");
+          await loadTransfersData();
+          renderTransfers();
+        } catch (error) {
+          toast(error.message, "error");
+        } finally {
+          setLoading("transfer", false);
+        }
+      });
+    }
+
+    async function loadMatchData() {
+      setLoading("match", true);
+      try {
+        const [teams, matches] = await Promise.all([api("/teams"), api("/matches")]);
+        state.match.teams = Array.isArray(teams) ? teams : [];
+        state.match.matches = Array.isArray(matches) ? matches : [];
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("match", false);
+      }
+    }
+
+    function renderMatchCenter() {
+      const m = state.match;
+      const teams = m.teams || [];
+      const homeTeam = teams.find((t) => String(getId(t)) === String(m.homeTeamId));
+      const awayTeam = teams.find((t) => String(getId(t)) === String(m.awayTeamId));
+      const result = m.lastResult;
+
+      el.content.innerHTML = `
+        <div class="toolbar"><h2>Match Center</h2></div>
+        ${state.loading.match ? loadingInline("Loading teams and matches...") : ""}
+        <section class="card">
+          <h3>Match Setup</h3>
+          <div class="split">
+            <label>Home Team
+              <select id="homeTeam">
+                <option value="">Select team...</option>
+                ${teams.map((t) =>
+                  `<option value="${getId(t)}" ${String(getId(t)) === String(m.homeTeamId) ? "selected" : ""}>${getTeamName(t)} (Power ${safeNum(t.teamPower)})</option>`
+                ).join("")}
+              </select>
+            </label>
+            <label>Away Team
+              <select id="awayTeam">
+                <option value="">Select team...</option>
+                ${teams.map((t) =>
+                  `<option value="${getId(t)}" ${String(getId(t)) === String(m.awayTeamId) ? "selected" : ""}>${getTeamName(t)} (Power ${safeNum(t.teamPower)})</option>`
+                ).join("")}
+              </select>
+            </label>
+          </div>
+          <div class="actions">
+            <button class="btn success" id="playMatchBtn" ${!m.homeTeamId || !m.awayTeamId || m.homeTeamId === m.awayTeamId || anyLoading() ? "disabled" : ""}>Play Match!</button>
+            ${homeTeam && awayTeam && m.homeTeamId === m.awayTeamId ? "<span class='muted'>Teams must be different.</span>" : ""}
+          </div>
+        </section>
+
+        ${result ? renderMatchResult(result) : ""}
+
+        <section class="card" style="margin-top:12px">
+          <h3>Match History</h3>
+          <div class="grid">
+            ${(m.matches || []).map((match) => {
+              const homeName = match.homeTeam || "Home";
+              const awayName = match.awayTeam || "Away";
+              const hs = safeNum(match.homeGoals);
+              const as = safeNum(match.awayGoals);
+              const badge = resultBadgeType(hs, as);
+              const date = match.playedAt || "";
+              return `
+                <div class="card">
+                  <div class="card-head">
+                    <strong>${homeName} ${hs} - ${as} ${awayName}</strong>
+                    <span class="badge ${badge.cls}">${badge.text}</span>
+                  </div>
+                  <div class="muted">${date ? new Date(date).toLocaleString() : ""}</div>
+                  <div class="actions">
+                    <button class="btn info" data-match-id="${getId(match)}">View Details</button>
+                  </div>
+                </div>
+              `;
+            }).join("") || "<p class='muted'>No matches played yet.</p>"}
+          </div>
+        </section>
+      `;
+
+      document.getElementById("homeTeam")?.addEventListener("change", (e) => {
+        m.homeTeamId = e.target.value;
+        renderMatchCenter();
+      });
+      document.getElementById("awayTeam")?.addEventListener("change", (e) => {
+        m.awayTeamId = e.target.value;
+        renderMatchCenter();
+      });
+      document.getElementById("playMatchBtn")?.addEventListener("click", playMatch);
+      el.content.querySelectorAll("[data-match-id]").forEach((b) => {
+        b.addEventListener("click", () => fetchMatchDetails(b.dataset.matchId));
+      });
+    }
+
+    function renderMatchResult(match) {
+      const hs = safeNum(match.homeGoals);
+      const as = safeNum(match.awayGoals);
+      const homeName = match.homeTeam || "Home";
+      const awayName = match.awayTeam || "Away";
+      const badge = resultBadgeType(hs, as);
+      const scorers = Array.isArray(match.scorers) ? match.scorers : [];
+      return `
+        <section class="match-score">
+          <div class="match-line">${homeName} <span class="gold">${hs}</span> - <span class="gold">${as}</span> ${awayName}</div>
+          <div><span class="badge ${badge.cls}">${badge.text}</span></div>
+          <div class="muted">${scorers.length ? `Scorers: ${scorers.join(", ")}` : "No scorers information"}</div>
+        </section>
+      `;
+    }
+
+    async function playMatch() {
+      const m = state.match;
+      setLoading("playMatch", true);
+      try {
+        const result = await api("/matches", {
+          method: "POST",
+          body: { homeTeamId: m.homeTeamId, awayTeamId: m.awayTeamId }
+        });
+        state.match.lastResult = result;
+        toast(`Match result: ${(result.homeTeam || "Home")} ${safeNum(result.homeGoals)} - ${safeNum(result.awayGoals)} ${(result.awayTeam || "Away")}`, "info");
+        await loadMatchData();
+        renderMatchCenter();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("playMatch", false);
+      }
+    }
+
+    async function fetchMatchDetails(matchId) {
+      setLoading("matchDetail", true);
+      try {
+        const detail = await api(`/matches/${matchId}`);
+        state.match.lastResult = detail;
+        renderMatchCenter();
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        setLoading("matchDetail", false);
+      }
+    }
+
+    async function loadLeagueTable(silent = false) {
+      if (!silent) setLoading("league", true);
+      try {
+        state.leagueTable = await api("/teams/league-table");
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        if (!silent) setLoading("league", false);
+        if (silent) renderLeague();
+      }
+    }
+
+    function renderLeague() {
+      const rows = Array.isArray(state.leagueTable) ? state.leagueTable : [];
+      el.content.innerHTML = `
+        <div class="toolbar">
+          <h2>League Table</h2>
+          <button class="btn info" id="refreshLeague">Refresh</button>
+        </div>
+        ${state.loading.league ? loadingInline("Loading league table...") : ""}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Power</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((r, idx) => {
+                const pos = safeNum(r.position || idx + 1);
+                const w = safeNum(r.wins);
+                const d = safeNum(r.draws);
+                const l = safeNum(r.losses);
+                const p = w + d + l;
+                const trClass = pos === 1 ? "champion" : (pos <= 3 ? "top3" : "");
+                return `
+                  <tr class="${trClass}">
+                    <td>${pos}</td>
+                    <td><span class="team-link" data-team-from-table="${getId(r) || r.teamId || ""}" data-team-name="${(r.teamName || getTeamName(r)).replace(/"/g, "&quot;")}">${r.teamName || getTeamName(r)}</span></td>
+                    <td>${p}</td><td>${w}</td><td>${d}</td><td>${l}</td>
+                    <td>${safeNum(r.goalsFor)}</td><td>${safeNum(r.goalsAgainst)}</td><td>${safeNum(r.goalDifference)}</td>
+                    <td class="big-number">${safeNum(r.points)}</td><td>${safeNum(r.teamPower)}</td>
+                  </tr>
+                `;
+              }).join("") || "<tr><td colspan='11' class='muted'>No data available.</td></tr>"}
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById("refreshLeague")?.addEventListener("click", () => loadLeagueTable());
+      el.content.querySelectorAll("[data-team-from-table]").forEach((node) => {
+        node.addEventListener("click", async () => {
+          const teamId = node.dataset.teamFromTable;
+          if (!teamId) return;
+          try {
+            const detail = await api(`/teams/${teamId}`);
+            state.teamDetailsCache[teamId] = detail;
+            state.activeTab = "teams";
+            state.expandedTeamIds.add(teamId);
+            await loadTeams();
+            render();
+          } catch (error) {
+            toast(error.message, "error");
+          }
+        });
+      });
+    }
+
+    async function loadTopScorers(silent = false) {
+      if (!silent) setLoading("scorers", true);
+      try {
+        state.scorers = await api("/players/top-scorers");
+      } catch (error) {
+        toast(error.message, "error");
+      } finally {
+        if (!silent) setLoading("scorers", false);
+        if (silent) renderScorers();
+      }
+    }
+
+    function medal(rank) {
+      if (rank === 1) return "🥇";
+      if (rank === 2) return "🥈";
+      if (rank === 3) return "🥉";
+      return rank;
+    }
+
+    function renderScorers() {
+      const rows = Array.isArray(state.scorers) ? state.scorers : [];
+      el.content.innerHTML = `
+        <div class="toolbar">
+          <h2>Top Scorers</h2>
+          <button class="btn info" id="refreshScorers">Refresh</button>
+        </div>
+        ${state.loading.scorers ? loadingInline("Loading top scorers...") : ""}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Rank</th><th>Player</th><th>Team</th><th>Pos</th><th>Goals</th><th>Games</th><th>Ratio</th><th>Skill</th></tr>
+            </thead>
+            <tbody>
+              ${rows.map((p, idx) => {
+                const rank = safeNum(p.rank || idx + 1);
+                const goals = safeNum(p.goals);
+                const games = safeNum(p.gamesPlayed);
+                const ratio = games > 0 ? (goals / games).toFixed(2) : "0.00";
+                return `
+                  <tr>
+                    <td>${medal(rank)}</td>
+                    <td><strong>${getPlayerName(p)}</strong></td>
+                    <td>${p.teamName || "Free Agent"}</td>
+                    <td><span class="badge ${positionBadgeClass(p.position)}">${p.position || "-"}</span></td>
+                    <td class="big-number gold">${goals}</td>
+                    <td>${games}</td>
+                    <td>${ratio}</td>
+                    <td>${safeNum(p.skillLevel)}</td>
+                  </tr>
+                `;
+              }).join("") || "<tr><td colspan='8' class='muted'>No scorers data available.</td></tr>"}
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById("refreshScorers")?.addEventListener("click", () => loadTopScorers());
+    }
+
+    async function initialize() {
+      render();
+      document.getElementById("seedDataBtn")?.addEventListener("click", seedDemoData);
+      await checkApiConnection(false);
+      await activateTab("players");
+      setInterval(() => checkApiConnection(true), 10000);
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
